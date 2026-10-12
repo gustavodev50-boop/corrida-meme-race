@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CORRIDA DE TIMES - EDICAO MEME</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --primary:#FF1744;--secondary:#00E676;--accent:#FFD600;--bg:#0a0a1a;
+    --card:#12122a;--border:#2a2a4a;--text:#fff;--muted:#8888aa;
+  }
+  body{font-family:'Press Start 2P',monospace;background:var(--bg);color:var(--text);overflow-x:hidden;min-height:100vh}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:var(--card)}
+  ::-webkit-scrollbar-thumb{background:var(--primary);border-radius:3px}
+
+  /* AUDIO UNLOCK BANNER */
+  #audioUnlock{
+    position:fixed;top:0;left:0;right:0;z-index:9999;
+    background:linear-gradient(90deg,#FF1744,#FFD600,#00E676);
+    color:#000;text-align:center;padding:14px 8px;font-size:10px;line-height:1.6;
+    cursor:pointer;border:none;width:100%;
+    animation:pulseBanner 0.8s infinite alternate;
+    text-shadow:0 0 2px rgba(255,255,255,0.3);
+  }
+  #audioUnlock.unlocked{display:none}
+  @keyframes pulseBanner{from{filter:brightness(1)}to{filter:brightness(1.4)}}
+
+  .container{max-width:900px;margin:0 auto;padding:10px}
+
+  /* HEADER */
+  .header{text-align:center;padding:16px 8px 8px}
+  .header h1{font-size:18px;color:var(--primary);text-shadow:2px 2px 0 #000,0 0 20px rgba(255,23,68,0.5);line-height:1.4}
+  .header .badge{display:inline-block;background:var(--secondary);color:#000;padding:4px 10px;font-size:8px;margin-top:6px;border:2px solid #fff;border-radius:4px;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:0.5}}
+
+  /* CONNECT PANEL */
+  .connect-panel{background:var(--card);border:2px solid var(--border);border-radius:8px;padding:14px;margin:10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+  .connect-panel input{
+    flex:1;min-width:180px;background:var(--bg);border:2px solid var(--border);
+    color:var(--text);padding:10px;font-family:'Press Start 2P';font-size:10px;border-radius:4px;outline:none;
+  }
+  .connect-panel input:focus{border-color:var(--primary)}
+  .btn{
+    font-family:'Press Start 2P';font-size:9px;padding:10px 14px;border:2px solid #fff;border-radius:4px;
+    cursor:pointer;transition:all 0.15s;text-transform:uppercase;white-space:nowrap;
+  }
+  .btn:active{transform:scale(0.95)}
+  .btn-connect{background:var(--secondary);color:#000}
+  .btn-connect:hover{background:#00C853}
+  .btn-disconnect{background:var(--primary);color:#fff}
+  .btn-reset{background:var(--accent);color:#000}
+  .btn-meme{background:var(--primary);color:#fff}
+  .btn-sarcasm{background:#9C27B0;color:#fff}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+
+  .status-pill{font-size:8px;padding:4px 8px;border-radius:4px;margin-top:6px}
+  .status-offline{background:#333;color:#888}
+  .status-online{background:var(--secondary);color:#000;animation:pulseBanner 1s infinite alternate}
+
+  /* SCOREBOARD */
+  .scoreboard{display:flex;gap:8px;margin:10px 0}
+  .score-card{flex:1;background:var(--card);border:3px solid var(--border);border-radius:8px;padding:12px;text-align:center;position:relative;overflow:hidden;transition:border-color 0.3s}
+  .score-card.team-a{border-color:#FF1744}
+  .score-card.team-b{border-color:#00C853}
+  .score-card.leading{box-shadow:0 0 16px rgba(255,214,0,0.4);border-color:var(--accent)}
+  .score-card .team-name{font-size:11px;margin-bottom:8px}
+  .score-card.team-a .team-name{color:#FF5252}
+  .score-card.team-b .team-name{color:#69F0AE}
+  .score-card .percent{font-size:22px;color:var(--accent);line-height:1.2}
+  .score-card .kmh{font-size:9px;color:var(--muted);margin-top:6px}
+
+  /* VIRADA BAR */
+  .virada-bar{
+    background:var(--secondary);color:#000;text-align:center;padding:10px;font-size:11px;
+    border-radius:6px;margin:8px 0;border:2px solid #fff;display:none;
+    animation:viradaFlash 0.4s infinite alternate;
+  }
+  .virada-bar.show{display:block}
+  @keyframes viradaFlash{from{transform:scale(1)}to{transform:scale(1.05);filter:brightness(1.2)}}
+
+  /* TRACK */
+  .track{background:var(--card);border:2px solid var(--border);border-radius:8px;padding:0;margin:10px 0;overflow:hidden;position:relative}
+  .lane{height:80px;position:relative;border-bottom:2px dashed #333;display:flex;align-items:center}
+  .lane:last-child{border-bottom:none}
+  .lane-label{position:absolute;left:6px;top:4px;font-size:7px;color:var(--muted);z-index:2}
+  .runner{position:absolute;left:0;transition:left 0.5s ease-out;display:flex;align-items:center;justify-content:center;height:100%;width:56px}
+  .runner-emoji{font-size:32px;line-height:1;filter:drop-shadow(2px 2px 0 #000)}
+  .finish-line{position:absolute;right:0;top:0;bottom:0;width:12px;background:repeating-linear-gradient(0deg,#fff 0 6px,#000 6px 12px);z-index:3}
+  .lane-bg-a{background:linear-gradient(90deg,rgba(255,23,68,0.05),rgba(255,23,68,0.15))}
+  .lane-bg-b{background:linear-gradient(90deg,rgba(0,200,83,0.05),rgba(0,200,83,0.15))}
+  .tropeco-effect{position:absolute;font-size:28px;animation:tropecoAnim 0.6s ease-out forwards;pointer-events:none;z-index:5}
+  @keyframes tropecoAnim{0%{opacity:1;transform:scale(1) rotate(0)}50%{transform:scale(1.5) rotate(20deg)}100%{opacity:0;transform:scale(0.8) rotate(-20deg)}}
+
+  /* MEME BUTTONS */
+  .meme-buttons{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap;justify-content:center}
+  .speed-bar{height:4px;background:#222;border-radius:2px;margin-top:4px;overflow:hidden}
+  .speed-fill{height:100%;transition:width 0.4s ease;border-radius:2px}
+  .speed-fill-a{background:linear-gradient(90deg,#FF1744,#FFD600)}
+  .speed-fill-b{background:linear-gradient(90deg,#00C853,#FFD600)}
+
+  /* EVENT LOG */
+  .event-log{background:var(--card);border:2px solid var(--border);border-radius:8px;padding:10px;margin:10px 0;max-height:180px;overflow-y:auto;font-size:8px;line-height:1.8}
+  .event-log h3{font-size:9px;color:var(--accent);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px}
+  .log-entry{padding:3px 0;color:var(--muted);border-bottom:1px dotted #222}
+  .log-entry .nick{color:var(--secondary)}
+  .log-entry.type-gift .nick{color:var(--accent)}
+  .log-entry.type-virada{color:var(--secondary);font-weight:bold}
+  .log-entry.type-vitoria{color:var(--primary);font-weight:bold}
+  .log-entry.type-system{color:#4488ff}
+  .log-entry.type-tropeco{color:#FF6B6B}
+  .log-entry.type-error{color:#FF1744}
+
+  /* VICTORY OVERLAY */
+  .victory-overlay{
+    position:fixed;top:0;left:0;right:0;bottom:0;z-index:8000;
+    background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;flex-direction:column;padding:20px;
+  }
+  .victory-overlay.show{display:flex}
+  .victory-card{
+    background:var(--card);border:3px solid var(--accent);border-radius:12px;padding:30px 20px;
+    text-align:center;max-width:420px;width:100%;animation:victoryPop 0.5s ease-out;
+  }
+  @keyframes victoryPop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+  .victory-card h2{font-size:16px;color:var(--accent);margin-bottom:12px;line-height:1.4;text-shadow:2px 2px 0 #000}
+  .victory-card .winner-name{font-size:20px;margin:12px 0;color:var(--secondary);text-shadow:2px 2px 0 #000}
+  .victory-card .meme-text{font-size:10px;color:var(--accent);margin:16px 0;line-height:1.6}
+  .victory-card .btn{margin-top:10px}
+  .confetti{position:fixed;width:10px;height:10px;z-index:8500;pointer-events:none;animation:confettiFall linear forwards}
+  @keyframes confettiFall{to{transform:translateY(100vh) rotate(720deg);opacity:0}}
+
+  /* NEW RACE MODAL */
+  .newrace-overlay{
+    position:fixed;top:0;left:0;right:0;bottom:0;z-index:8500;
+    background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;padding:20px;
+  }
+  .newrace-overlay.show{display:flex}
+  .newrace-card{
+    background:var(--card);border:2px solid var(--border);border-radius:10px;padding:20px;
+    max-width:480px;width:100%;max-height:90vh;overflow-y:auto;
+  }
+  .newrace-card h3{font-size:12px;color:var(--accent);text-align:center;margin-bottom:14px}
+  .team-select-section{margin-bottom:14px}
+  .team-select-section label{font-size:8px;color:var(--muted);display:block;margin-bottom:6px}
+  .team-list{display:flex;flex-wrap:wrap;gap:6px}
+  .team-chip{
+    font-family:'Press Start 2P';font-size:7px;padding:8px 6px;border:2px solid var(--border);
+    border-radius:4px;cursor:pointer;background:var(--bg);color:var(--text);transition:all 0.15s;min-width:90px;text-align:center;
+  }
+  .team-chip:active{transform:scale(0.95)}
+  .team-chip.selected-a{border-color:var(--primary);background:rgba(255,23,68,0.2);color:#FF5252}
+  .team-chip.selected-b{border-color:var(--secondary);background:rgba(0,200,83,0.2);color:#69F0AE}
+  .team-chip.disabled{opacity:0.3;cursor:not-allowed}
+
+  /* EFFECTS */
+  .fogo-effect{position:absolute;font-size:30px;animation:fogoAnim 0.8s ease-out forwards;pointer-events:none;z-index:5}
+  @keyframes fogoAnim{0%{opacity:1;transform:scale(0.5)}50%{transform:scale(1.5)}100%{opacity:0;transform:scale(1.8)}}
+
+  @media(max-width:600px){
+    .header h1{font-size:13px}
+    .score-card .percent{font-size:16px}
+    .score-card .team-name{font-size:8px}
+    .runner-emoji{font-size:24px}
+    .btn{font-size:7px;padding:8px 10px}
+    .connect-panel input{font-size:8px;min-width:140px}
+    .victory-card h2{font-size:12px}
+    .victory-card .winner-name{font-size:14px}
+    .victory-card .meme-text{font-size:8px}
+    .team-chip{font-size:6px;min-width:72px}
+  }
+</style>
+</head>
+<body>
+
+<button id="audioUnlock">ATIVAR AUDIO E MEMES - CLIQUE AQUI</button>
+
+<div class="container">
+
+  <div class="header">
+    <h1>CORRIDA DE TIMES</h1>
+    <span class="badge">EDICAO MEME - AO VIVO</span>
+  </div>
+
+  <div class="connect-panel">
+    <input type="text" id="tiktokUser" placeholder="@usuario_tiktok" maxlength="40">
+    <button class="btn btn-connect" id="btnConnect">CONECTAR LIVE</button>
+    <button class="btn btn-disconnect" id="btnDisconnect" disabled>DESCONECTAR</button>
+    <button class="btn btn-reset" id="btnReset">RESET</button>
+  </div>
+  <div style="text-align:center">
+    <span class="status-pill status-offline" id="statusPill">OFFLINE</span>
+  </div>
+
+  <div class="scoreboard">
+    <div class="score-card team-a" id="cardA">
+      <div class="team-name" id="nameA">FLAMENGO</div>
+      <div class="percent" id="percentA">0%</div>
+      <div class="kmh" id="kmhA">0 KM/H</div>
+      <div class="speed-bar"><div class="speed-fill speed-fill-a" id="speedA" style="width:0%"></div></div>
+    </div>
+    <div class="score-card team-b" id="cardB">
+      <div class="team-name" id="nameB">PALMEIRAS</div>
+      <div class="percent" id="percentB">0%</div>
+      <div class="kmh" id="kmhB">0 KM/H</div>
+      <div class="speed-bar"><div class="speed-fill speed-fill-b" id="speedB" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="virada-bar" id="viradaBar">VIRADA!</div>
+
+  <div class="track" id="track">
+    <div class="lane lane-bg-a">
+      <span class="lane-label" id="labelA">TIME A</span>
+      <div class="runner" id="runnerA"><span class="runner-emoji">🏃</span></div>
+      <div class="finish-line"></div>
+    </div>
+    <div class="lane lane-bg-b">
+      <span class="lane-label" id="labelB">TIME B</span>
+      <div class="runner" id="runnerB"><span class="runner-emoji">🏃</span></div>
+      <div class="finish-line"></div>
+    </div>
+  </div>
+
+  <div class="meme-buttons">
+    <button class="btn btn-meme" id="btnNey">NEY MEMES</button>
+    <button class="btn btn-sarcasm" id="btnSarcasm">SARCASMO</button>
+  </div>
+
+  <div class="event-log">
+    <h3>LOG AO VIVO</h3>
+    <div id="logList"></div>
+  </div>
+
+</div>
+
+<!-- VICTORY OVERLAY -->
+<div class="victory-overlay" id="victoryOverlay">
+  <div class="victory-card">
+    <h2>VITORIA!</h2>
+    <div class="winner-name" id="winnerName">TIME</div>
+    <div class="meme-text" id="memeText">...</div>
+    <button class="btn btn-reset" id="btnNewRace">NOVA CORRIDA</button>
+  </div>
+</div>
+
+<!-- NEW RACE MODAL -->
+<div class="newrace-overlay" id="newRaceOverlay">
+  <div class="newrace-card">
+    <h3>ESCOLHA 2 TIMES</h3>
+    <div class="team-select-section">
+      <label>TIME A (vermelho): <span id="selALabel">--</span></label>
+      <div class="team-list" id="teamListA"></div>
+    </div>
+    <div class="team-select-section">
+      <label>TIME B (verde): <span id="selBLabel">--</span></label>
+      <div class="team-list" id="teamListB"></div>
+    </div>
+    <div style="text-align:center;margin-top:10px">
+      <button class="btn btn-connect" id="btnStartRace" disabled>COMEÇAR NOVA CORRIDA</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+const TEAMS = [
+  'FLAMENGO','PALMEIRAS','CORINTHIANS','SAO PAULO','ATLETICO MG',
+  'CRUZEIRO','INTERNACIONAL','GREMIO','FLUMINENSE','VASCO',
+  'BOTAFOGO','ATLETICO PR','BAHIA','FORTALEZA','CUIABA',
+  'JUVENTUDE','VITORIA','BRAGANTINO','ATHLETICO PR','CRB'
+];
+
+const MEMES_VITORIA = {
+  'FLAMENGO':'Ganhou, mas e o Mundial? KKKK',
+  'PALMEIRAS':'O Verdao venceu! Mas tem Mundial? NAO! KKKK',
+  'CORINTHIANS':'O Timao venceu! 30 anos de Mundial, hein?',
+  'SAO PAULO':'O Tricolor venceu! 3 Mundiais, cala a boca!',
+  'VASCO':'O GIGANTE VOLTOU! Cruzmaltino na area!',
+  'CRUZEIRO':'Ganhou! Mas ja foi pra Serie B... KKKK',
+  'ATLETICO MG':'Galo venceu! Mas o Galo juga na 2?',
+  'INTERNACIONAL':'Colorado venceu! Inter em alto mar!',
+  'GREMIO':'Imortal venceu! Mas ja foi pra Serie B tambem...',
+  'FLUMINENSE':'Flu venceu! Tricolor das Laranjeiras brilha!',
+  'BOTAFOGO':'Fogao venceu! Estrela solitaria brilhou!',
+  'BAHIA':'Esquadro venceu! O Nordeste e do Bahia!',
+  'FORTALEZA':'Leao do Pici venceu! Ce ta naarea!',
+  'CUIABA':'Ganhou! Quem diria hein...',
+  'JUVENTUDE':'O Juba venceu! Surpresa total!',
+  'VITORIA':'Leao da Barra venceu! Rebaixado de novo?',
+  'BRAGANTINO':'O time da RedBull venceu! Energy drink-powered!',
+  'ATHLETICO PR':'Furacao venceu! Mas ninguem assistiu...',
+  'ATLETICO PR':'Furacao venceu! Mas ninguem assistiu...',
+  'CRB':'Ganhou! Mas quem e CRB? KKKK'
+};
+
+const NEY_MEMES = [
+  'Pra que tacar a bola na Mavi, Ney?!',
+  'NEEY! Que isso hein!',
+  'O Ney ta chorando de novo...',
+  'Neymar caiu! dramatico demais!',
+  'Isso e falta sim, arbitro!',
+  'NEY! Arrogante! Voce e arrogante!',
+  'Bola na Mavi! Bola na Mavi!',
+  'Ele chorou mas fez o que?'
+];
+
+const SARCASMO_MEMES = [
+  'AII QUE BURRIDADE! KKKKK',
+  'E PUTARIA NE?!',
+  'OLHA A VIRADA GENTE!',
+  'Que jogacao de futebol hein... NOT',
+  'Mundial sem mundial KKKK',
+  'Poxa, que surpresa... NOT',
+  'Isso ai nao e falta nao, para com isso!',
+  'AI AI AI, que vergonha alheia!'
+];
+
+// AUDIO SYSTEM
+let audioCtx = null;
+let audioUnlocked = false;
+const synth = window.speechSynthesis;
+
+function speak(text, rate, pitch) {
+  if (!audioUnlocked) return;
+  try {
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'pt-BR';
+    u.rate = rate || 1.1;
+    u.pitch = pitch || 1.0;
+    u.volume = 1.0;
+    synth.speak(u);
+  } catch(e) {}
+}
+
+function playTone(freq, duration, type, vol) {
+  if (!audioCtx || !audioUnlocked) return;
+  try {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'square';
+    osc.frequency.value = freq || 440;
+    gain.gain.value = vol || 0.15;
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration || 0.2));
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + (duration || 0.2));
+  } catch(e) {}
+}
+
+function playSoundEffect(sound) {
+  switch(sound) {
+    case 'impulso30':
+      playTone(523, 0.15, 'square', 0.12);
+      speak('ROSINHA!', 1.3, 1.2);
+      break;
+    case 'impulso90':
+      playTone(659, 0.2, 'square', 0.15);
+      playTone(880, 0.15, 'square', 0.1);
+      speak('ARROGANTE! Voce e arrogante!', 1.2, 0.9);
+      break;
+    case 'meta':
+      playTone(440, 0.1, 'sawtooth', 0.15);
+      playTone(554, 0.1, 'sawtooth', 0.15);
+      playTone(659, 0.3, 'sawtooth', 0.15);
+      speak('AI E PUTARIA NE?!', 1.1, 0.8);
+      break;
+    case 'tropeco':
+      playTone(200, 0.3, 'sawtooth', 0.2);
+      playTone(150, 0.2, 'sawtooth', 0.15);
+      speak('AI QUE BURRICE! KKKKK', 1.3, 0.6);
+      break;
+    case 'escorregao':
+      playTone(300, 0.4, 'sawtooth', 0.18);
+      playTone(100, 0.3, 'sawtooth', 0.15);
+      speak('ESCOREGOU! KKKK QUE VERGONHA!', 1.3, 0.5);
+      break;
+    case 'virada':
+      playTone(523, 0.1, 'square', 0.15);
+      playTone(659, 0.1, 'square', 0.15);
+      playTone(784, 0.3, 'square', 0.15);
+      speak('VIRADA! OLHA A VIRADA!', 1.2, 1.1);
+      break;
+    case 'vitoria':
+      playTone(523, 0.15, 'square', 0.15);
+      playTone(659, 0.15, 'square', 0.15);
+      playTone(784, 0.15, 'square', 0.15);
+      playTone(1047, 0.5, 'square', 0.2);
+      break;
+  }
+}
+
+// AUDIO UNLOCK - must be user gesture
+const audioUnlockBtn = document.getElementById('audioUnlock');
+audioUnlockBtn.addEventListener('click', function unlockAudio() {
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    // Test tone
+    playTone(800, 0.1, 'square', 0.1);
+    // Test speech
+    speak('AUDIO ATIVADO! BORA CORRER!', 1.2, 1.0);
+    audioUnlocked = true;
+    audioUnlockBtn.classList.add('unlocked');
+  } catch(e) {
+    console.warn('Audio unlock failed', e);
+    audioUnlocked = true;
+    audioUnlockBtn.classList.add('unlocked');
+  }
+});
+
+// SOCKET EVENTS
+let gameStateCache = null;
+socket.on('gameState', (state) => {
+  gameStateCache = state;
+  updateUI(state);
+});
+
+socket.on('playSound', (sound) => {
+  playSoundEffect(sound);
+});
+
+socket.on('eventLog', (event) => {
+  addLog(event);
+});
+
+socket.on('tiktokConnected', ({ username }) => {
+  document.getElementById('statusPill').textContent = 'LIVE @' + username;
+  document.getElementById('statusPill').className = 'status-pill status-online';
+  document.getElementById('btnConnect').disabled = true;
+  document.getElementById('btnDisconnect').disabled = false;
+});
+
+socket.on('tiktokDisconnected', () => {
+  document.getElementById('statusPill').textContent = 'OFFLINE';
+  document.getElementById('statusPill').className = 'status-pill status-offline';
+  document.getElementById('btnConnect').disabled = false;
+  document.getElementById('btnDisconnect').disabled = true;
+});
+
+socket.on('tiktokError', ({ message }) => {
+  document.getElementById('statusPill').textContent = 'ERRO';
+  document.getElementById('statusPill').className = 'status-pill status-offline';
+  document.getElementById('btnConnect').disabled = false;
+  document.getElementById('btnDisconnect').disabled = true;
+  addLog({ type: 'error', text: 'Erro: ' + message });
+});
+
+socket.on('vitoria', ({ team, name }) => {
+  showVictory(team, name);
+});
+
+// UI UPDATE
+function updateUI(state) {
+  const a = state.flamengo;
+  const b = state.palmeiras;
+
+  document.getElementById('nameA').textContent = a.name;
+  document.getElementById('nameB').textContent = b.name;
+  document.getElementById('labelA').textContent = a.name;
+  document.getElementById('labelB').textContent = b.name;
+  document.getElementById('percentA').textContent = a.percent.toFixed(1) + '%';
+  document.getElementById('percentB').textContent = b.percent.toFixed(1) + '%';
+  document.getElementById('kmhA').textContent = a.kmh.toFixed(0) + ' KM/H';
+  document.getElementById('kmhB').textContent = b.kmh.toFixed(0) + ' KM/H';
+  document.getElementById('speedA').style.width = Math.min(100, a.percent) + '%';
+  document.getElementById('speedB').style.width = Math.min(100, b.percent) + '%';
+
+  // Runners
+  const trackWidth = document.getElementById('track').offsetWidth - 56;
+  const posA = Math.min(100, a.percent) / 100 * trackWidth;
+  const posB = Math.min(100, b.percent) / 100 * trackWidth;
+  document.getElementById('runnerA').style.left = posA + 'px';
+  document.getElementById('runnerB').style.left = posB + 'px';
+
+  // Leading card
+  const cardA = document.getElementById('cardA');
+  const cardB = document.getElementById('cardB');
+  cardA.classList.remove('leading');
+  cardB.classList.remove('leading');
+  if (a.percent > b.percent) cardA.classList.add('leading');
+  else if (b.percent > a.percent) cardB.classList.add('leading');
+
+  // Virada bar
+  const viradaBar = document.getElementById('viradaBar');
+  if (state.leader && state.lastEvent && state.lastEvent.type === 'virada') {
+    viradaBar.textContent = 'VIRADA! ' + state[state.leader].name + ' NA FRENTE!';
+    viradaBar.classList.add('show');
+    setTimeout(() => viradaBar.classList.remove('show'), 3000);
+  }
+}
+
+// LOG
+function addLog(event) {
+  const list = document.getElementById('logList');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry type-' + (event.type || 'system');
+  let html = '';
+  if (event.sender) {
+    html = '<span class="nick">' + escapeHtml(event.sender) + '</span> ' + escapeHtml(event.text || '');
+  } else {
+    html = escapeHtml(event.text || '');
+  }
+  entry.innerHTML = html;
+  list.insertBefore(entry, list.firstChild);
+  while (list.children.length > 50) list.removeChild(list.lastChild);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// CONNECT
+document.getElementById('btnConnect').addEventListener('click', () => {
+  const username = document.getElementById('tiktokUser').value.trim().replace('@', '');
+  if (!username) {
+    addLog({ type: 'error', text: 'Digite um usuario valido!' });
+    return;
+  }
+  if (!audioUnlocked) {
+    addLog({ type: 'system', text: 'Ative o audio primeiro! Clique no botao verde no topo!' });
+    return;
+  }
+  socket.emit('connectTikTok', { username });
+});
+
+document.getElementById('btnDisconnect').addEventListener('click', () => {
+  socket.emit('disconnectTikTok');
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  socket.emit('reset', {});
+  document.getElementById('victoryOverlay').classList.remove('show');
+});
+
+// MEME BUTTONS
+document.getElementById('btnNey').addEventListener('click', () => {
+  const meme = NEY_MEMES[Math.floor(Math.random() * NEY_MEMES.length)];
+  speak(meme, 1.2, 1.3);
+  addLog({ type: 'system', text: 'NEY MEME: ' + meme });
+});
+
+document.getElementById('btnSarcasm').addEventListener('click', () => {
+  const meme = SARCASMO_MEMES[Math.floor(Math.random() * SARCASMO_MEMES.length)];
+  speak(meme, 1.1, 0.8);
+  addLog({ type: 'system', text: 'SARCASMO: ' + meme });
+});
+
+// VICTORY
+function showVictory(team, name) {
+  const memeText = MEMES_VITORIA[name] || 'Ganhou! Mas por quanto tempo? KKKK';
+  document.getElementById('winnerName').textContent = name + ' VENCEU!';
+  document.getElementById('memeText').textContent = memeText;
+  document.getElementById('victoryOverlay').classList.add('show');
+  playSoundEffect('vitoria');
+  speak(memeText, 1.0, 1.0);
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const colors = ['#FF1744','#00E676','#FFD600','#2979FF','#FF6B6B'];
+  for (let i = 0; i < 80; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.top = '-10px';
+    c.style.background = colors[Math.floor(Math.random() * colors.length)];
+    c.style.animationDuration = (2 + Math.random() * 2) + 's';
+    c.style.animationDelay = Math.random() * 0.5 + 's';
+    c.style.width = (6 + Math.random() * 8) + 'px';
+    c.style.height = (6 + Math.random() * 8) + 'px';
+    if (Math.random() > 0.5) c.style.borderRadius = '50%';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 5000);
+  }
+}
+
+// NEW RACE
+document.getElementById('btnNewRace').addEventListener('click', () => {
+  document.getElementById('victoryOverlay').classList.remove('show');
+  showNewRaceModal();
+});
+
+let selectedA = null;
+let selectedB = null;
+
+function showNewRaceModal() {
+  selectedA = null;
+  selectedB = null;
+  document.getElementById('selALabel').textContent = '--';
+  document.getElementById('selBLabel').textContent = '--';
+  document.getElementById('btnStartRace').disabled = true;
+  renderTeamList('teamListA', 'A');
+  renderTeamList('teamListB', 'B');
+  document.getElementById('newRaceOverlay').classList.add('show');
+}
+
+function renderTeamList(containerId, side) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  TEAMS.forEach(team => {
+    const chip = document.createElement('button');
+    chip.className = 'team-chip';
+    chip.textContent = team;
+    chip.addEventListener('click', () => selectTeam(team, side, chip));
+    container.appendChild(chip);
+  });
+}
+
+function selectTeam(team, side, chip) {
+  if (side === 'A') {
+    selectedA = team;
+    document.getElementById('selALabel').textContent = team;
+    document.querySelectorAll('#teamListA .team-chip').forEach(c => {
+      c.classList.remove('selected-a');
+      c.classList.remove('disabled');
+    });
+    chip.classList.add('selected-a');
+    // Disable selected A in list B
+    document.querySelectorAll('#teamListB .team-chip').forEach(c => {
+      c.classList.remove('disabled');
+      if (c.textContent === team) c.classList.add('disabled');
+    });
+  } else {
+    if (chip.classList.contains('disabled')) return;
+    selectedB = team;
+    document.getElementById('selBLabel').textContent = team;
+    document.querySelectorAll('#teamListB .team-chip').forEach(c => {
+      c.classList.remove('selected-b');
+    });
+    chip.classList.add('selected-b');
+  }
+  document.getElementById('btnStartRace').disabled = !(selectedA && selectedB);
+}
+
+document.getElementById('btnStartRace').addEventListener('click', () => {
+  if (selectedA && selectedB) {
+    socket.emit('reset', { teamA: selectedA, teamB: selectedB });
+    document.getElementById('newRaceOverlay').classList.remove('show');
+    addLog({ type: 'system', text: 'NOVA CORRIDA: ' + selectedA + ' x ' + selectedB });
+  }
+});
+
+// Resize handler to update runner positions
+window.addEventListener('resize', () => {
+  if (gameStateCache) updateUI(gameStateCache);
+});
+</script>
+</body>
+</html>
